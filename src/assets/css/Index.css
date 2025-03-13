@@ -1,0 +1,13 @@
+@import "./FooterStyles.css";
+@import "./NavbarStyle.css";
+
+.main-layout{
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+}
+.main-layout > :first-child {
+    margin-top: 48px;
+}
