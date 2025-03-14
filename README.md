@@ -1,3 +1,7 @@
+Git clone về máy ;
+mở terminal và cài đặt thư viện với mpn i;
+Code theo chức năng và push lên test hoặc có thể kéo về một nhánh riêng nữa cho từng chức năng
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
