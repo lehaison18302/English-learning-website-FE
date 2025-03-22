@@ -10,7 +10,7 @@ import {
 import { AutoComplete, Avatar, Card, Input, Rate, Tooltip } from "antd";
 import Login from "./login/Login";
 import CardUser from "./login/CardUser";
-import apiCommon from "src/apis/functionApi";
+import apiCommon from "../apis/funcionApi";
 const { Search } = Input;
 
 const Navbar = () => {
