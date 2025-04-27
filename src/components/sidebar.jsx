@@ -13,7 +13,7 @@ import {
 import logo from '../assets/image/logoweb.png';
 
 const menuItems = [
-  { to: '/home',       label: 'Học',           icon: <HomeFilled /> },
+  { to: '/',           label: 'Học',           icon: <HomeFilled /> },
   { to: '/pronounce',  label: 'Phát âm',       icon: <AudioOutlined /> },
   { to: '/leaderboard',label: 'Bảng xếp hạng', icon: <TrophyOutlined /> },
   { to: '/tasks',      label: 'Nhiệm vụ',      icon: <CheckCircleOutlined /> },

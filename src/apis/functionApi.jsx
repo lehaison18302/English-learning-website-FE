@@ -1,4 +1,4 @@
-const { axiosClient } = require("./baseApi");
+import { axiosClient } from "./baseApi";
 
 const apiCommon = {
   getPronounce: () => {  
