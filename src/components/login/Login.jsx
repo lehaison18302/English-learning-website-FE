@@ -1,97 +1,86 @@
 import React, { useState } from "react";
-import axios from "axios"; // Import axios
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase";
 import { useNavigate } from "react-router-dom";
-import { Button, Form, Input, message, Modal } from "antd";
 
-const Login = ({ setLogin }) => {
-  const [openLogin, setOpenLogin] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [username, setUsername] = useState("");
+const Login = () => {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmitLogin = async () => {
-    setLoading(true);
-    await axios.post("http://localhost:3000/login", {
-      password,
-      username,
-    })
-      .then(res => {
-        if (!res.data) {
-          message.error("Tên đăng nhập hoặc mật khẩu không đúng")
-          setLoading(false);
-          return false
-        } else {
-          const { accessToken } = res.data;
-          localStorage.setItem("accessToken", JSON.stringify(accessToken));
-          console.log("Access token saved:", accessToken);
-          setLogin(true);
-          setLoading(false);
-          setOpenLogin(false);
-        }
-      })
-  };
-
-  const openLoginPanel = () => {
-    setOpenLogin(true);
-  };
-
-  const handleCancelLogin = () => {
-    setOpenLogin(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      console.log("Đăng nhập thành công!");
+      navigate("/home");
+    } catch (err) {
+      setError("Email hoặc mật khẩu không đúng!");
+    }
   };
 
   return (
-    <div className="login-container flex" style={{ gap: 8 }}>
-      <Button type="primary" onClick={openLoginPanel}>
-        Đăng nhập
-      </Button>
-      <Modal
-        open={openLogin}
-        title={
-          <strong
-            style={{ display: "flex", justifyContent: "center", fontSize: 20 }}
-          >
-            Đăng nhập
-          </strong>
-        }
-        onCancel={handleCancelLogin}
-        footer={[
-          <Button key="back" onClick={handleCancelLogin}>
-            Hủy bỏ
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={loading}
-            onClick={handleSubmitLogin}
-          >
-            Đăng nhập
-          </Button>,
-        ]}
-      >
-        <Form
-          name="login"
-          initialValues={{ remember: true }}
-          onFinish={handleSubmitLogin}
-          layout="vertical"
-        >
-          <Form.Item
-            label="Tên đăng nhập"
-            name="username"
-            rules={[{ required: true, message: "Vui lòng nhập tên tài khoản!" }]}
-          >
-            <Input onChange={(e) => setUsername(e.target.value)} />
-          </Form.Item>
+    <div className="min-h-screen flex items-center justify-center bg-[#e9ebee] px-4">
+      <div className="bg-white border border-gray-300 rounded-xl shadow-md w-full max-w-md p-8">
+        <h2 className="text-4xl font-bold text-center text-[#1877f2] mb-6">
+          Đăng nhập
+        </h2>
 
-          <Form.Item
-            label="Mật khẩu"
-            name="password"
-            rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
+        <p className="text-center text-gray-600 mb-6 text-sm">
+          Hãy đăng nhập để tiếp tục sử dụng
+        </p>
+
+        {error && (
+          <div className="bg-red-100 text-red-700 text-sm text-center p-2 rounded mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1877f2] text-sm"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="Mật khẩu"
+            className="w-full p-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1877f2] text-sm"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          <button
+            type="submit"
+            className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white font-semibold py-3 rounded text-sm transition duration-300"
           >
-            <Input.Password onChange={(e) => setPassword(e.target.value)} />
-          </Form.Item>
-        </Form>
-      </Modal>
+            Đăng nhập
+          </button>
+        </form>
+
+        <div className="text-center mt-4">
+          <a href="/forgot" className="text-sm text-[#1877f2] hover:underline">
+            Quên mật khẩu?
+          </a>
+        </div>
+
+        <hr className="my-6 border-gray-300" />
+
+        <div className="text-center">
+          <a
+            href="/register"
+            className="inline-block bg-[#42b72a] hover:bg-[#36a420] text-white py-2 px-5 rounded font-semibold text-sm transition"
+          >
+            Tạo tài khoản mới
+          </a>
+        </div>
+      </div>
     </div>
   );
 };
