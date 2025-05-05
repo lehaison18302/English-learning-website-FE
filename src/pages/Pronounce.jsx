@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/sidebar";
 import PronounceCard from "../components/pronounceCard";
-import Footer from "../components/footer";
 import apiCommon from "../apis/functionApi";
 
 const Pronounce = () => {
