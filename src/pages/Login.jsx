@@ -1,14 +1,24 @@
-import Login from "../components/login/Login";
-import Footer from "../components/footer";
 import React from "react";
+import Login from "../components/login/Login";
+import backgroundImage from "../assets/image/login-background.png";
 
 const LoginPage = () => {
-    return (
-        <div>
-            <Login />
-            <Footer />
-        </div>
-    );
+  const pageStyle = {
+    backgroundImage: `url(${backgroundImage})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  return (
+    <div style={pageStyle}>
+      <Login />
+    </div>
+  );
 };
 
 export default LoginPage;
