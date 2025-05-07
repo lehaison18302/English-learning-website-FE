@@ -1,7 +1,7 @@
 import React from "react";
 import "./styles.css";
 import Home from "./pages/Home";
-import Pronounce from "./pages/Pronounce";
+import PronouncePage from "./pages/PronouncePage";
 import Task from "./pages/Task";
 import LoginPage from "./pages/Login";
 import { Route, Routes } from "react-router-dom";
@@ -14,7 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/home" element={<Home />} />   
-        <Route path="/pronounce" element={<Pronounce />} />
+        <Route path="/pronounce" element={<PronouncePage />} />
         <Route path="/tasks" element={<Task />} />
       </Routes>
     </div>
