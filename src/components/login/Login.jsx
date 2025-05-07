@@ -16,7 +16,16 @@ const Login = () => {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/home");
     } catch (err) {
-      setError("Email hoặc mật khẩu không đúng!");
+      console.error("Login error:", err);
+      if (err.code === "auth/user-not-found") {
+        setError("Không tìm thấy tài khoản với email này!");
+      } else if (err.code === "auth/wrong-password") {
+        setError("Mật khẩu không đúng!");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Email không hợp lệ!");
+      } else {
+        setError(`Lỗi đăng nhập: ${err.message}`);
+      }
     }
   };
 
