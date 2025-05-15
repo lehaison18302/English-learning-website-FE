@@ -14,6 +14,8 @@ function Home() {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLesson, setSelectedLesson] = useState(null);
+  const [lessonExercises, setLessonExercises] = useState([]);
+  const [lessonLoading, setLessonLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,27 +24,39 @@ function Home() {
 
   const fetchLessons = async () => {
     try {
+      setLoading(true);
       const response = await apiCommon.getAllLessons();
-      console.log('API Response:', response);
-      console.log('Lessons data:', response.data);
-      setLessons(response.data);
-      setLoading(false);
+      console.log('API Response:', response); // Debug log
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        setLessons(response.data.data);
+      } else {
+        console.error('Invalid response format:', response);
+        message.error('Invalid response format from server');
+      }
     } catch (error) {
       console.error('Error fetching lessons:', error);
-      message.error('Failed to fetch lessons');
+      message.error('Failed to fetch lessons. Please try again later.');
+    } finally {
       setLoading(false);
     }
   };
 
   const handleLessonClick = async (lessonId) => {
     try {
-      setLoading(true);
+      setLessonLoading(true);
       const response = await apiCommon.getLessonContent(lessonId);
-      setSelectedLesson(response.data);
-      setLoading(false);
+      console.log('Lesson content response:', response); // Debug log
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        setSelectedLesson(lessons.find(lesson => lesson._id === lessonId));
+        setLessonExercises(response.data.data);
+      } else {
+        message.error('Invalid lesson data received');
+      }
     } catch (error) {
-      message.error('Failed to fetch lesson content');
-      setLoading(false);
+      console.error('Error fetching lesson content:', error);
+      message.error('Failed to load lesson content. Please try again.');
+    } finally {
+      setLessonLoading(false);
     }
   };
 
@@ -53,13 +67,14 @@ function Home() {
         exerciseId,
         answer
       );
-      if (response.success) {
+      if (response.data && response.data.success) {
         message.success('Answer submitted successfully!');
       } else {
-        message.error('Incorrect answer. Try again!');
+        message.error(response.data?.message || 'Incorrect answer. Try again!');
       }
     } catch (error) {
-      message.error('Failed to submit answer');
+      console.error('Error submitting answer:', error);
+      message.error('Failed to submit answer. Please try again.');
     }
   };
 
@@ -86,10 +101,9 @@ function Home() {
                         style={{ height: '100%' }}
                       >
                         <Title level={4}>{lesson.title}</Title>
-                        <p>{lesson.description}</p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>Level: {lesson.level}</span>
-                          <span>{lesson.duration} min</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                          <span>Reward: {lesson.reward} points</span>
+                          <span>{lesson.isUnlock ? 'Unlocked' : 'Locked'}</span>
                         </div>
                       </Card>
                     </Col>
@@ -106,35 +120,45 @@ function Home() {
               <div>
                 <Button 
                   type="link" 
-                  onClick={() => setSelectedLesson(null)}
+                  onClick={() => {
+                    setSelectedLesson(null);
+                    setLessonExercises([]);
+                  }}
                   style={{ marginBottom: '16px' }}
                 >
                   ← Back to Lessons
                 </Button>
                 
-                <Tabs defaultActiveKey="vocabulary">
-                  <TabPane tab="Vocabulary" key="vocabulary">
-                    {selectedLesson.vocabulary.map((vocab) => (
-                      <VocabularyCard key={vocab._id} vocabulary={vocab} />
-                    ))}
-                  </TabPane>
-                  
-                  <TabPane tab="Exercises" key="exercises">
-                    {selectedLesson.exercises.map((exercise) => (
-                      <ExerciseCard
-                        key={exercise._id}
-                        exercise={exercise}
-                        onSubmit={handleExerciseSubmit}
-                      />
-                    ))}
-                  </TabPane>
-                </Tabs>
+                {lessonLoading ? (
+                  <div style={{ textAlign: 'center', padding: '50px' }}>
+                    <Spin size="large" />
+                  </div>
+                ) : (
+                  <div>
+                    <Title level={3} style={{ marginBottom: '24px' }}>{selectedLesson.title}</Title>
+                    <div style={{ marginBottom: '16px' }}>
+                      <span>Reward: {selectedLesson.reward} points</span>
+                    </div>
+                    
+                    {lessonExercises && lessonExercises.length > 0 ? (
+                      lessonExercises.map((exercise) => (
+                        <ExerciseCard
+                          key={exercise._id}
+                          exercise={exercise}
+                          onSubmit={handleExerciseSubmit}
+                        />
+                      ))
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <p>No exercises available for this lesson</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </>
         )}
-
-        <Footer />
       </div>
     </div>
   );
