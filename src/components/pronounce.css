@@ -52,28 +52,33 @@
 }
 
 .pronounce-details {
-    margin-top: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
+    position: fixed;
+    right: 40px;
+    top: 200px;
+    width: 300px;
+    padding: 20px;
+    background: white;
     border-radius: 8px;
-    background-color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e8e8e8;
 }
 
 .pronounce-details h2 {
-    margin-bottom: 15px;
-    font-size: 18px;
-    color: #333;
+    font-size: 20px;
+    margin-bottom: 16px;
+    color: #1890ff;
+    border-bottom: 2px solid #e8e8e8;
+    padding-bottom: 8px;
 }
 
 .pronounce-details p {
-    margin: 8px 0;
-    font-size: 14px;
-    color: #666;
+    margin-bottom: 12px;
+    line-height: 1.5;
 }
 
 .pronounce-details strong {
     color: #333;
-    margin-right: 0.5rem;
+    margin-right: 8px;
 }
 
 @media (max-width: 1200px) {

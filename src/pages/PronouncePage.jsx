@@ -27,8 +27,7 @@ const PronouncePage = () => {
       <div style={{ 
         marginLeft: '240px', 
         padding: '20px', 
-        width: 'calc(100% - 240px)',
-        maxWidth: '1200px'
+        width: 'calc(100% - 240px)'
       }}>
         <div style={{ 
           marginBottom: '30px',
