@@ -4,10 +4,11 @@ import Sidebar from "../components/sidebar";
 import Footer from "../components/footer";
 import ExerciseCard from "../components/ExerciseCard";
 import VocabularyCard from "../components/VocabularyCard";
-import { Card, Row, Col, Typography, Spin, message, Tabs, Button } from "antd";
+import { Card, Row, Col, Typography, Spin, message, Tabs, Button, Tag, Progress, Result } from "antd";
+import { LockOutlined, UnlockOutlined, TrophyOutlined, ArrowLeftOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import apiCommon from "../apis/functionApi";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TabPane } = Tabs;
 
 function Home() {
@@ -16,6 +17,8 @@ function Home() {
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [lessonExercises, setLessonExercises] = useState([]);
   const [lessonLoading, setLessonLoading] = useState(false);
+  const [completedExercises, setCompletedExercises] = useState({});
+  const [lessonScore, setLessonScore] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +29,6 @@ function Home() {
     try {
       setLoading(true);
       const response = await apiCommon.getAllLessons();
-      console.log('API Response:', response); // Debug log
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         setLessons(response.data.data);
       } else {
@@ -45,10 +47,11 @@ function Home() {
     try {
       setLessonLoading(true);
       const response = await apiCommon.getLessonContent(lessonId);
-      console.log('Lesson content response:', response); // Debug log
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         setSelectedLesson(lessons.find(lesson => lesson._id === lessonId));
         setLessonExercises(response.data.data);
+        setCompletedExercises({});
+        setLessonScore(0);
       } else {
         message.error('Invalid lesson data received');
       }
@@ -60,29 +63,45 @@ function Home() {
     }
   };
 
-  const handleExerciseSubmit = async (exerciseId, answer) => {
-    try {
-      const response = await apiCommon.submitExerciseAnswer(
-        selectedLesson._id,
-        exerciseId,
-        answer
-      );
-      if (response.data && response.data.success) {
-        message.success('Answer submitted successfully!');
-      } else {
-        message.error(response.data?.message || 'Incorrect answer. Try again!');
+  const handleExerciseSubmit = (exerciseId, answer) => {
+    const exercise = lessonExercises.find(ex => ex._id === exerciseId);
+    if (!exercise) return;
+
+    const isCorrect = answer.toLowerCase() === exercise.correctAnswer.toLowerCase();
+    
+    // Update completed exercises
+    setCompletedExercises(prev => ({
+      ...prev,
+      [exerciseId]: {
+        isCorrect,
+        userAnswer: answer
       }
-    } catch (error) {
-      console.error('Error submitting answer:', error);
-      message.error('Failed to submit answer. Please try again.');
+    }));
+
+    // Update score
+    if (isCorrect) {
+      setLessonScore(prev => prev + 1);
+      message.success('Correct answer! 🎉');
+    } else {
+      message.error('Incorrect answer. Try again!');
     }
+  };
+
+  const calculateProgress = () => {
+    const totalExercises = lessonExercises.length;
+    const completedCount = Object.keys(completedExercises).length;
+    return Math.round((completedCount / totalExercises) * 100);
+  };
+
+  const isLessonCompleted = () => {
+    return Object.keys(completedExercises).length === lessonExercises.length;
   };
 
   return (
     <div className="main-layout">
       <Sidebar />
-      <div style={{ marginLeft: '240px', padding: '20px' }}>
-        <Title level={2} style={{ marginBottom: '24px' }}>English Learning Lessons</Title>
+      <div style={{ marginLeft: '240px', padding: '20px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
+        <Title level={2} style={{ marginBottom: '24px', color: '#1a1a1a' }}>English Learning Journey</Title>
         
         {loading ? (
           <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -91,42 +110,112 @@ function Home() {
         ) : (
           <>
             {!selectedLesson ? (
-              <Row gutter={[16, 16]}>
+              <Row gutter={[24, 24]}>
                 {lessons && lessons.length > 0 ? (
                   lessons.map((lesson) => (
                     <Col xs={24} sm={12} md={8} lg={6} key={lesson._id}>
                       <Card
                         hoverable
                         onClick={() => handleLessonClick(lesson._id)}
-                        style={{ height: '100%' }}
+                        style={{
+                          height: '100%',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                          transition: 'all 0.3s ease',
+                          border: 'none',
+                          background: lesson.isUnlock ? 'white' : '#f5f5f5'
+                        }}
+                        bodyStyle={{ padding: '20px' }}
                       >
-                        <Title level={4}>{lesson.title}</Title>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                          <span>Reward: {lesson.reward} points</span>
-                          <span>{lesson.isUnlock ? 'Unlocked' : 'Locked'}</span>
+                        <div style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          height: '100%',
+                          opacity: lesson.isUnlock ? 1 : 0.7
+                        }}>
+                          <Title level={4} style={{ 
+                            color: lesson.isUnlock ? '#1a1a1a' : '#8c8c8c',
+                            marginBottom: '16px'
+                          }}>
+                            {lesson.title}
+                          </Title>
+                          
+                          <div style={{ marginTop: 'auto' }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center',
+                              marginBottom: '12px'
+                            }}>
+                              <Tag 
+                                icon={<TrophyOutlined />} 
+                                color="gold"
+                                style={{ 
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '14px'
+                                }}
+                              >
+                                {lesson.reward} points
+                              </Tag>
+                              {lesson.isUnlock ? (
+                                <Tag 
+                                  icon={<UnlockOutlined />} 
+                                  color="success"
+                                  style={{ 
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  Unlocked
+                                </Tag>
+                              ) : (
+                                <Tag 
+                                  icon={<LockOutlined />} 
+                                  color="default"
+                                  style={{ 
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  Locked
+                                </Tag>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </Card>
                     </Col>
                   ))
                 ) : (
                   <Col span={24}>
-                    <div style={{ textAlign: 'center', padding: '20px' }}>
-                      <p>No lessons available</p>
+                    <div style={{ textAlign: 'center', padding: '40px' }}>
+                      <Text type="secondary">No lessons available at the moment</Text>
                     </div>
                   </Col>
                 )}
               </Row>
             ) : (
-              <div>
+              <div style={{ maxWidth: '800px', margin: '0 auto' }}>
                 <Button 
                   type="link" 
                   onClick={() => {
                     setSelectedLesson(null);
                     setLessonExercises([]);
+                    setCompletedExercises({});
+                    setLessonScore(0);
                   }}
-                  style={{ marginBottom: '16px' }}
+                  style={{ 
+                    marginBottom: '24px',
+                    fontSize: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
                 >
-                  ← Back to Lessons
+                  <ArrowLeftOutlined /> Back to Lessons
                 </Button>
                 
                 {lessonLoading ? (
@@ -134,24 +223,110 @@ function Home() {
                     <Spin size="large" />
                   </div>
                 ) : (
-                  <div>
-                    <Title level={3} style={{ marginBottom: '24px' }}>{selectedLesson.title}</Title>
-                    <div style={{ marginBottom: '16px' }}>
-                      <span>Reward: {selectedLesson.reward} points</span>
-                    </div>
+                  <div style={{ 
+                    backgroundColor: 'white',
+                    padding: '24px',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                  }}>
+                    <Title level={3} style={{ 
+                      marginBottom: '16px',
+                      color: '#1a1a1a'
+                    }}>
+                      {selectedLesson.title}
+                    </Title>
                     
-                    {lessonExercises && lessonExercises.length > 0 ? (
-                      lessonExercises.map((exercise) => (
-                        <ExerciseCard
-                          key={exercise._id}
-                          exercise={exercise}
-                          onSubmit={handleExerciseSubmit}
-                        />
-                      ))
+                    <div style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      marginBottom: '24px',
+                      padding: '12px',
+                      backgroundColor: '#f8f9fa',
+                      borderRadius: '8px'
+                    }}>
+                      <Tag 
+                        icon={<TrophyOutlined />} 
+                        color="gold"
+                        style={{ 
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {selectedLesson.reward} points
+                      </Tag>
+                      <Text type="secondary">Complete all exercises to earn points</Text>
+                    </div>
+
+                    {isLessonCompleted() ? (
+                      <Result
+                        status="success"
+                        title="Congratulations! 🎉"
+                        subTitle={`You completed the lesson with ${lessonScore} correct answers out of ${lessonExercises.length} exercises!`}
+                        extra={[
+                          <Button 
+                            type="primary" 
+                            key="back"
+                            onClick={() => {
+                              setSelectedLesson(null);
+                              setLessonExercises([]);
+                              setCompletedExercises({});
+                              setLessonScore(0);
+                            }}
+                          >
+                            Back to Lessons
+                          </Button>
+                        ]}
+                      />
                     ) : (
-                      <div style={{ textAlign: 'center', padding: '20px' }}>
-                        <p>No exercises available for this lesson</p>
-                      </div>
+                      <>
+                        <div style={{ marginBottom: '24px' }}>
+                          <Progress 
+                            percent={calculateProgress()} 
+                            status="active"
+                            format={percent => `${percent}% Complete`}
+                          />
+                          <div style={{ 
+                            marginTop: '8px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <Text type="secondary">
+                              {Object.keys(completedExercises).length} of {lessonExercises.length} exercises completed
+                            </Text>
+                            <Text strong>
+                              Score: {lessonScore}/{lessonExercises.length}
+                            </Text>
+                          </div>
+                        </div>
+                        
+                        {lessonExercises && lessonExercises.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {lessonExercises.map((exercise) => (
+                              <ExerciseCard
+                                key={exercise._id}
+                                exercise={exercise}
+                                onSubmit={handleExerciseSubmit}
+                                isCompleted={!!completedExercises[exercise._id]}
+                                isCorrect={completedExercises[exercise._id]?.isCorrect}
+                                userAnswer={completedExercises[exercise._id]?.userAnswer}
+                                correctAnswer={exercise.correctAnswer}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            textAlign: 'center', 
+                            padding: '40px',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: '8px'
+                          }}>
+                            <Text type="secondary">No exercises available for this lesson</Text>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
