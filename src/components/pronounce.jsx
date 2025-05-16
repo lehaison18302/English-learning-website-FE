@@ -48,7 +48,6 @@ const Pronounce = ({ data }) => {
     return (
         <div className="pronounce-component">
             {renderCards()}
-
             {selectedItem && (
                 <div className="pronounce-details">
                     <h2>Chi tiết phát âm</h2>
