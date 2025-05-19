@@ -7,6 +7,9 @@ import VocabularyCard from "../components/VocabularyCard";
 import { Card, Row, Col, Typography, Spin, message, Tabs, Button, Tag, Progress, Result } from "antd";
 import { LockOutlined, UnlockOutlined, TrophyOutlined, ArrowLeftOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import apiCommon from "../apis/functionApi";
+import { auth } from "../firebase";
+import { getFirestore } from "firebase/firestore";
+import { addDoc, collection } from "firebase/firestore";
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -19,6 +22,7 @@ function Home() {
   const [lessonLoading, setLessonLoading] = useState(false);
   const [completedExercises, setCompletedExercises] = useState({});
   const [lessonScore, setLessonScore] = useState(0);
+  const [startTime, setStartTime] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +56,7 @@ function Home() {
         setLessonExercises(response.data.data);
         setCompletedExercises({});
         setLessonScore(0);
+        setStartTime(new Date());
       } else {
         message.error('Invalid lesson data received');
       }
@@ -95,6 +100,48 @@ function Home() {
 
   const isLessonCompleted = () => {
     return Object.keys(completedExercises).length === lessonExercises.length;
+  };
+
+  const calculateCompletionTime = () => {
+    if (!startTime) return "0 minutes";
+    const endTime = new Date();
+    const diffInMinutes = Math.round((endTime - startTime) / (1000 * 60));
+    return `${diffInMinutes} minutes`;
+  };
+
+  const handleLessonCompletion = async () => {
+    if (!selectedLesson) return;
+
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No authenticated user');
+
+      const completedLesson = {
+        userId: user.uid,
+        lessonId: selectedLesson._id,
+        title: selectedLesson.title,
+        score: lessonScore,
+        totalExercises: lessonExercises.length,
+        completionTime: calculateCompletionTime(),
+        completedAt: new Date()
+      };
+
+      // Save to Firestore
+      const db = getFirestore();
+      await addDoc(collection(db, 'completedLessons'), completedLesson);
+
+      // Reset lesson state
+      setSelectedLesson(null);
+      setLessonExercises([]);
+      setCompletedExercises({});
+      setLessonScore(0);
+      setStartTime(null);
+
+      message.success('Lesson completed successfully! 🎉');
+    } catch (error) {
+      console.error('Error saving completed lesson:', error);
+      message.error('Failed to save lesson completion. Please try again.');
+    }
   };
 
   return (
@@ -268,12 +315,7 @@ function Home() {
                           <Button 
                             type="primary" 
                             key="back"
-                            onClick={() => {
-                              setSelectedLesson(null);
-                              setLessonExercises([]);
-                              setCompletedExercises({});
-                              setLessonScore(0);
-                            }}
+                            onClick={handleLessonCompletion}
                           >
                             Back to Lessons
                           </Button>
