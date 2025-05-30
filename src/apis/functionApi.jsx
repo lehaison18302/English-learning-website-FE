@@ -2,9 +2,10 @@ import { axiosClient } from "./baseApi";
 import apiEndpoints from "./endPoint";
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import app from '../firebase';
 
-const db = getFirestore();
-const auth = getAuth();
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 const apiCommon = {
   getPronounce: () => {  

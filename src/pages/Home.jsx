@@ -357,6 +357,30 @@ function Home() {
                                 correctAnswer={exercise.correctAnswer}
                               />
                             ))}
+                            {Object.keys(completedExercises).length === lessonExercises.length && (
+                              <div style={{ 
+                                display: 'flex', 
+                                justifyContent: 'center', 
+                                marginTop: '24px',
+                                padding: '16px',
+                                backgroundColor: '#f6ffed',
+                                borderRadius: '8px',
+                                border: '1px solid #b7eb8f'
+                              }}>
+                                <Button 
+                                  type="primary" 
+                                  size="large"
+                                  onClick={handleLessonCompletion}
+                                  style={{ 
+                                    minWidth: '200px',
+                                    height: '48px',
+                                    fontSize: '16px'
+                                  }}
+                                >
+                                  Hoàn thành bài học
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{ 
