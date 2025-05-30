@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/sidebar";
-import { Card, Typography, Row, Col, Avatar, Statistic, Progress, List, Tag, Spin } from "antd";
+import { Card, Typography, Row, Col, Avatar, Statistic, Progress, List, Tag, Spin, message } from "antd";
 import { UserOutlined, TrophyOutlined, ClockCircleOutlined, BookOutlined } from '@ant-design/icons';
-import apiCommon from "../apis/functionApi";
+import { useAuth } from "../contexts/AuthContext";
+import { getFirestore, doc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
+import app from "../firebase";
 
 const { Title, Text } = Typography;
 
@@ -17,26 +19,47 @@ const Profile = () => {
     averageScore: 0,
     totalTime: 0
   });
+  const { currentUser } = useAuth();
+  const db = getFirestore(app);
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+  }, [currentUser]);
 
   const fetchUserData = async () => {
     try {
       setLoading(true);
-      // Fetch user information
-      const userResponse = await apiCommon.getUserProfile();
-      setUserInfo(userResponse.data.data);
+      if (!currentUser) {
+        throw new Error('No authenticated user');
+      }
+
+      // Fetch user information from Firestore
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        setUserInfo(userDoc.data());
+      } else {
+        message.error('Không tìm thấy thông tin người dùng');
+      }
 
       // Fetch completed lessons
-      const lessonsResponse = await apiCommon.getUserCompletedLessons();
-      setCompletedLessons(lessonsResponse.data.data);
+      const completedLessonsQuery = await getDocs(
+        query(
+          collection(db, 'completedLessons'),
+          where('userId', '==', currentUser.uid)
+        )
+      );
+      
+      const lessons = completedLessonsQuery.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCompletedLessons(lessons);
 
       // Calculate statistics
-      calculateStats(lessonsResponse.data.data);
+      calculateStats(lessons);
     } catch (error) {
       console.error('Error fetching user data:', error);
+      message.error('Không thể tải thông tin người dùng');
     } finally {
       setLoading(false);
     }
@@ -81,11 +104,11 @@ const Profile = () => {
                 <Avatar 
                   size={100} 
                   icon={<UserOutlined />} 
-                  src={userInfo?.avatar}
+                  src={userInfo?.photoURL}
                   style={styles.avatar}
                 />
                 <Title level={3} style={styles.userName}>
-                  {userInfo?.name || 'User Name'}
+                  {userInfo?.displayName || 'User Name'}
                 </Title>
                 <Text type="secondary">{userInfo?.email}</Text>
               </div>
@@ -110,43 +133,29 @@ const Profile = () => {
             </Card>
           </Col>
 
-          {/* Learning Progress Section */}
+          {/* Completed Lessons Section */}
           <Col xs={24} md={16}>
-            <Card title="Learning Progress" style={styles.progressCard}>
-              <div style={styles.progressSection}>
-                <Text strong>Overall Progress</Text>
-                <Progress 
-                  percent={Math.round((stats.completedLessons / stats.totalLessons) * 100)} 
-                  status="active"
-                />
-                <div style={styles.progressStats}>
-                  <Text type="secondary">
-                    {stats.completedLessons} of {stats.totalLessons} lessons completed
-                  </Text>
-                  <Text strong>Average Score: {stats.averageScore}</Text>
-                </div>
-              </div>
-
-              <div style={styles.lessonsSection}>
-                <Title level={4}>Recent Completed Lessons</Title>
-                <List
-                  dataSource={completedLessons.slice(0, 5)}
-                  renderItem={lesson => (
-                    <List.Item>
-                      <Card style={styles.lessonCard}>
-                        <div style={styles.lessonInfo}>
-                          <Title level={5}>{lesson.title}</Title>
-                          <div style={styles.lessonStats}>
-                            <Tag color="blue">Score: {lesson.score}/{lesson.totalExercises}</Tag>
-                            <Tag color="green">Time: {lesson.completionTime}</Tag>
-                            <Text type="secondary">Completed: {lesson.completedAt}</Text>
-                          </div>
+            <Card style={styles.progressCard}>
+              <Title level={4}>Bài học đã hoàn thành</Title>
+              <List
+                dataSource={completedLessons}
+                renderItem={lesson => (
+                  <List.Item>
+                    <Card style={styles.lessonCard}>
+                      <div style={styles.lessonInfo}>
+                        <Title level={5}>{lesson.title}</Title>
+                        <div style={styles.lessonStats}>
+                          <Tag color="blue">Score: {lesson.score}</Tag>
+                          <Tag color="green">Time: {lesson.completionTime}</Tag>
+                          <Tag color="purple">
+                            Completed: {new Date(lesson.completedAt.toDate()).toLocaleDateString()}
+                          </Tag>
                         </div>
-                      </Card>
-                    </List.Item>
-                  )}
-                />
-              </div>
+                      </div>
+                    </Card>
+                  </List.Item>
+                )}
+              />
             </Card>
           </Col>
         </Row>
@@ -198,17 +207,6 @@ const styles = {
   progressCard: {
     borderRadius: "12px",
     boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-  },
-  progressSection: {
-    marginBottom: "24px",
-  },
-  progressStats: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "8px",
-  },
-  lessonsSection: {
-    marginTop: "24px",
   },
   lessonCard: {
     width: "100%",

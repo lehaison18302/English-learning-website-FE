@@ -1,13 +1,27 @@
 import axios from "axios";
-const BASE_URL = "http://localhost:3000";
-import queryString from 'query-string';
+import queryString from "query-string";
+import { getAuth } from "firebase/auth";
 
+const BASE_URL = "http://localhost:3000";
 
 export const axiosClient = axios.create({
   baseURL: BASE_URL,
   headers: {
     "content-type": "application/json",
-    // Authorization: `Bearer ${token}`,
   },
   paramsSerializer: (params) => queryString.stringify(params),
 });
+
+// Thêm interceptor để tự động đính kèm Firebase ID Token vào mọi request
+axiosClient.interceptors.request.use(
+  async (config) => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (user) {
+      const idToken = await user.getIdToken();
+      config.headers.Authorization = `Bearer ${idToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
