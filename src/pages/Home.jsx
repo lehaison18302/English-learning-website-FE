@@ -23,10 +23,12 @@ function Home() {
   const [completedExercises, setCompletedExercises] = useState({});
   const [lessonScore, setLessonScore] = useState(0);
   const [startTime, setStartTime] = useState(null);
+  const [completedLessonIds, setCompletedLessonIds] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchLessons();
+    fetchCompletedLessons();
   }, []);
 
   const fetchLessons = async () => {
@@ -44,6 +46,24 @@ function Home() {
       message.error('Failed to fetch lessons. Please try again later.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCompletedLessons = async () => {
+    try {
+      // Lấy danh sách bài học đã hoàn thành từ Firestore
+      const user = auth.currentUser;
+      if (!user) return;
+      const db = getFirestore();
+      const completedSnapshot = await db.collection('completedLessons')
+        .where('userId', '==', user.uid)
+        .get();
+      const ids = completedSnapshot.docs.map(doc => doc.data().lessonId);
+      setCompletedLessonIds(ids);
+    } catch (e) {
+      // Nếu dùng Firestore v9+, dùng getDocs/query như ở Profile.jsx
+      // Có thể dùng apiCommon.getUserCompletedLessons() nếu đã có
+      // Nếu lỗi, bỏ qua
     }
   };
 
@@ -72,9 +92,9 @@ function Home() {
     const exercise = lessonExercises.find(ex => ex._id === exerciseId);
     if (!exercise) return;
 
-    const isCorrect = answer.toLowerCase() === exercise.correctAnswer.toLowerCase();
-    
-    // Update completed exercises
+    // So sánh đáp án cho mọi loại bài tập
+    const isCorrect = answer.trim().toLowerCase() === exercise.correctAnswer.trim().toLowerCase();
+
     setCompletedExercises(prev => ({
       ...prev,
       [exerciseId]: {
@@ -83,12 +103,8 @@ function Home() {
       }
     }));
 
-    // Update score
     if (isCorrect) {
       setLessonScore(prev => prev + 1);
-      message.success('Correct answer! 🎉');
-    } else {
-      message.error('Incorrect answer. Try again!');
     }
   };
 
@@ -149,7 +165,6 @@ function Home() {
       <Sidebar />
       <div style={{ marginLeft: '240px', padding: '20px', backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
         <Title level={2} style={{ marginBottom: '24px', color: '#1a1a1a' }}>English Learning Journey</Title>
-        
         {loading ? (
           <div style={{ textAlign: 'center', padding: '50px' }}>
             <Spin size="large" />
@@ -159,45 +174,39 @@ function Home() {
             {!selectedLesson ? (
               <Row gutter={[24, 24]}>
                 {lessons && lessons.length > 0 ? (
-                  lessons.map((lesson) => (
-                    <Col xs={24} sm={12} md={8} lg={6} key={lesson._id}>
-                      <Card
-                        hoverable
-                        onClick={() => handleLessonClick(lesson._id)}
-                        style={{
-                          height: '100%',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                          transition: 'all 0.3s ease',
-                          border: 'none',
-                          background: lesson.isUnlock ? 'white' : '#f5f5f5'
-                        }}
-                        bodyStyle={{ padding: '20px' }}
-                      >
-                        <div style={{ 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          height: '100%',
-                          opacity: lesson.isUnlock ? 1 : 0.7
-                        }}>
-                          <Title level={4} style={{ 
-                            color: lesson.isUnlock ? '#1a1a1a' : '#8c8c8c',
-                            marginBottom: '16px'
+                  lessons.map((lesson) => {
+                    const isCompleted = completedLessonIds.includes(lesson._id);
+                    return (
+                      <Col xs={24} sm={12} md={8} lg={6} key={lesson._id}>
+                        <Card
+                          hoverable
+                          onClick={() => handleLessonClick(lesson._id)}
+                          style={{
+                            height: '100%',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                            transition: 'all 0.3s ease',
+                            border: 'none',
+                            background: isCompleted ? 'white' : '#f5f5f5' 
+                          }}
+                          bodyStyle={{ padding: '20px' }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            height: '100%',
                           }}>
-                            {lesson.title}
-                          </Title>
-                          
-                          <div style={{ marginTop: 'auto' }}>
-                            <div style={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
-                              alignItems: 'center',
-                              marginBottom: '12px'
+                            <Title level={4} style={{
+                              color: '#1a1a1a',
+                              marginBottom: '16px'
                             }}>
-                              <Tag 
-                                icon={<TrophyOutlined />} 
+                              {lesson.title}
+                            </Title>
+                            <div style={{ marginTop: 'auto' }}>
+                              <Tag
+                                icon={<TrophyOutlined />}
                                 color="gold"
-                                style={{ 
+                                style={{
                                   padding: '4px 8px',
                                   borderRadius: '4px',
                                   fontSize: '14px'
@@ -205,37 +214,17 @@ function Home() {
                               >
                                 {lesson.reward} points
                               </Tag>
-                              {lesson.isUnlock ? (
-                                <Tag 
-                                  icon={<UnlockOutlined />} 
-                                  color="success"
-                                  style={{ 
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '14px'
-                                  }}
-                                >
-                                  Unlocked
-                                </Tag>
-                              ) : (
-                                <Tag 
-                                  icon={<LockOutlined />} 
-                                  color="default"
-                                  style={{ 
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '14px'
-                                  }}
-                                >
-                                  Locked
+                              {isCompleted && (
+                                <Tag color="success" style={{ marginLeft: 8 }}>
+                                  Đã hoàn thành
                                 </Tag>
                               )}
                             </div>
                           </div>
-                        </div>
-                      </Card>
-                    </Col>
-                  ))
+                        </Card>
+                      </Col>
+                    );
+                  })
                 ) : (
                   <Col span={24}>
                     <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -305,94 +294,73 @@ function Home() {
                       </Tag>
                       <Text type="secondary">Complete all exercises to earn points</Text>
                     </div>
-
-                    {isLessonCompleted() ? (
-                      <Result
-                        status="success"
-                        title="Congratulations! 🎉"
-                        subTitle={`You completed the lesson with ${lessonScore} correct answers out of ${lessonExercises.length} exercises!`}
-                        extra={[
-                          <Button 
-                            type="primary" 
-                            key="back"
-                            onClick={handleLessonCompletion}
-                          >
-                            Back to Lessons
-                          </Button>
-                        ]}
+                    <div style={{ marginBottom: '24px' }}>
+                      <Progress 
+                        percent={calculateProgress()} 
+                        status="active"
+                        format={percent => `${percent}% Complete`}
                       />
-                    ) : (
-                      <>
-                        <div style={{ marginBottom: '24px' }}>
-                          <Progress 
-                            percent={calculateProgress()} 
-                            status="active"
-                            format={percent => `${percent}% Complete`}
+                      <div style={{ 
+                        marginTop: '8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <Text type="secondary">
+                          {Object.keys(completedExercises).length} of {lessonExercises.length} exercises completed
+                        </Text>
+                        <Text strong>
+                          Score: {lessonScore}/{lessonExercises.length}
+                        </Text>
+                      </div>
+                    </div>
+                    {lessonExercises && lessonExercises.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {lessonExercises.map((exercise) => (
+                          <ExerciseCard
+                            key={exercise._id}
+                            exercise={exercise}
+                            onSubmit={handleExerciseSubmit}
+                            isCompleted={!!completedExercises[exercise._id]}
+                            isCorrect={completedExercises[exercise._id]?.isCorrect}
+                            userAnswer={completedExercises[exercise._id]?.userAnswer}
+                            correctAnswer={exercise.correctAnswer}
                           />
+                        ))}
+                        {Object.keys(completedExercises).length === lessonExercises.length && (
                           <div style={{ 
-                            marginTop: '8px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            marginTop: '24px',
+                            padding: '16px',
+                            backgroundColor: '#f6ffed',
+                            borderRadius: '8px',
+                            border: '1px solid #b7eb8f'
                           }}>
-                            <Text type="secondary">
-                              {Object.keys(completedExercises).length} of {lessonExercises.length} exercises completed
-                            </Text>
-                            <Text strong>
-                              Score: {lessonScore}/{lessonExercises.length}
-                            </Text>
-                          </div>
-                        </div>
-                        
-                        {lessonExercises && lessonExercises.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {lessonExercises.map((exercise) => (
-                              <ExerciseCard
-                                key={exercise._id}
-                                exercise={exercise}
-                                onSubmit={handleExerciseSubmit}
-                                isCompleted={!!completedExercises[exercise._id]}
-                                isCorrect={completedExercises[exercise._id]?.isCorrect}
-                                userAnswer={completedExercises[exercise._id]?.userAnswer}
-                                correctAnswer={exercise.correctAnswer}
-                              />
-                            ))}
-                            {Object.keys(completedExercises).length === lessonExercises.length && (
-                              <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'center', 
-                                marginTop: '24px',
-                                padding: '16px',
-                                backgroundColor: '#f6ffed',
-                                borderRadius: '8px',
-                                border: '1px solid #b7eb8f'
-                              }}>
-                                <Button 
-                                  type="primary" 
-                                  size="large"
-                                  onClick={handleLessonCompletion}
-                                  style={{ 
-                                    minWidth: '200px',
-                                    height: '48px',
-                                    fontSize: '16px'
-                                  }}
-                                >
-                                  Hoàn thành bài học
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div style={{ 
-                            textAlign: 'center', 
-                            padding: '40px',
-                            backgroundColor: '#f8f9fa',
-                            borderRadius: '8px'
-                          }}>
-                            <Text type="secondary">No exercises available for this lesson</Text>
+                            <Button 
+                              type="primary" 
+                              size="large"
+                              onClick={handleLessonCompletion}
+                              style={{ 
+                                minWidth: '200px',
+                                height: '48px',
+                                fontSize: '16px'
+                              }}
+                            >
+                              Hoàn thành bài học
+                            </Button>
                           </div>
                         )}
-                      </>
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        textAlign: 'center', 
+                        padding: '40px',
+                        backgroundColor: '#f8f9fa',
+                        borderRadius: '8px'
+                      }}>
+                        <Text type="secondary">No exercises available for this lesson</Text>
+                      </div>
                     )}
                   </div>
                 )}
