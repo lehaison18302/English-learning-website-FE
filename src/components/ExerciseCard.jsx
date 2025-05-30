@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Radio, Input, Button, Space, Typography, Tag } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import AudioButton from './audio';
+import { CheckCircleOutlined, CloseCircleOutlined, AudioOutlined } from '@ant-design/icons';
 
 const { Text, Title } = Typography;
 
@@ -24,17 +23,36 @@ const ExerciseCard = ({
 
   const handleOptionSelect = (value) => {
     setAnswer(value);
-    if (isCompleted) return;
-    onSubmit(exercise._id, value);
+    if (!isCompleted) {
+      onSubmit(exercise._id, value);
+      setShowFeedback(true);
+    }
+  };
+
+  const playAudio = () => {
+    if (exercise.audioUrl) {
+      const audio = new Audio(exercise.audioUrl);
+      audio.play();
+    }
   };
 
   const renderQuestion = () => {
     return (
       <div style={{ marginBottom: '16px' }}>
         <Title level={5} style={{ marginBottom: '8px' }}>
+          {exercise.type === 'listen' && exercise.audioUrl ? (
+            <Button
+              icon={<AudioOutlined />}
+              onClick={playAudio}
+              style={{ marginRight: 8 }}
+              disabled={isCompleted}
+            >
+              Nghe
+            </Button>
+          ) : null}
           {exercise.question}
         </Title>
-        {exercise.type === 'match' && (
+        {(exercise.type === 'multiple-choice' || exercise.type === 'listen') && (
           <Radio.Group 
             onChange={(e) => handleOptionSelect(e.target.value)}
             value={isCompleted ? userAnswer : answer}
@@ -131,4 +149,4 @@ const ExerciseCard = ({
   );
 };
 
-export default ExerciseCard; 
+export default ExerciseCard;
