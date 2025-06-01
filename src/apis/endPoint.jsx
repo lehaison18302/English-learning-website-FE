@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = "https://english-learning-website-be-nhom32.onrender.com";
 
 const apiEndpoints = {
     //
