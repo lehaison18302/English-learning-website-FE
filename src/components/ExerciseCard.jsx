@@ -10,21 +10,28 @@ const ExerciseCard = ({
   isCompleted, 
   isCorrect, 
   userAnswer, 
-  correctAnswer 
+  correctAnswer,
+  isSubmitting 
 }) => {
   const [answer, setAnswer] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
 
   const handleSubmit = () => {
     if (!answer.trim()) return;
-    onSubmit(exercise._id, answer);
+    console.log('--- [EXERCISE_CARD] handleSubmit ---');
+    console.log('Exercise ID:', exercise._id);
+    console.log('Answer FROM STATE being submitted:', `'${answer}'`);
+    onSubmit(answer);
     setShowFeedback(true);
   };
 
   const handleOptionSelect = (value) => {
     setAnswer(value);
     if (!isCompleted) {
-      onSubmit(exercise._id, value);
+      console.log('--- [EXERCISE_CARD] handleOptionSelect ---');
+      console.log('Exercise ID:', exercise._id);
+      console.log('Value (answer) FROM OPTION being submitted:', `'${value}'`);
+      onSubmit(value);
       setShowFeedback(true);
     }
   };
@@ -96,32 +103,51 @@ const ExerciseCard = ({
   const renderFeedback = () => {
     if (!isCompleted) return null;
 
+    if (isSubmitting) {
+      return (
+        <div style={{ 
+          marginTop: '16px',
+          padding: '12px',
+          borderRadius: '8px',
+          backgroundColor: '#f0f0f0',
+          border: '1px solid #d9d9d9'
+        }}>
+          <div style={{ textAlign: 'center' }}>Đang kiểm tra...</div>
+        </div>
+      );
+    }
+
+    const showAsCorrect = isCorrect;
     return (
       <div style={{ 
         marginTop: '16px',
         padding: '12px',
         borderRadius: '8px',
-        backgroundColor: isCorrect ? '#f6ffed' : '#fff2f0',
-        border: `1px solid ${isCorrect ? '#b7eb8f' : '#ffccc7'}`
+        backgroundColor: showAsCorrect ? '#f6ffed' : '#fff2f0',
+        border: `1px solid ${showAsCorrect ? '#b7eb8f' : '#ffccc7'}`
       }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isCorrect ? (
-              <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
-            ) : (
-              <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: '20px' }} />
-            )}
-            <Text strong style={{ color: isCorrect ? '#52c41a' : '#ff4d4f' }}>
-              {isCorrect ? 'Correct!' : 'Incorrect'}
-            </Text>
-          </div>
-          {!isCorrect && (
-            <div>
-              <Text type="secondary">Correct answer: </Text>
-              <Tag color="success">{correctAnswer}</Tag>
+        {isSubmitting ? (
+          <div style={{ textAlign: 'center' }}>Đang kiểm tra...</div>
+        ) : (
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {showAsCorrect ? (
+                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
+              ) : (
+                <CloseCircleOutlined style={{ color: '#ff4d4f', fontSize: '20px' }} />
+              )}
+              <Text strong style={{ color: showAsCorrect ? '#52c41a' : '#ff4d4f' }}>
+                {showAsCorrect ? 'Correct!' : 'Incorrect'}
+              </Text>
             </div>
-          )}
-        </Space>
+            {!showAsCorrect && (
+              <div>
+                <Text type="secondary">Correct answer: </Text>
+                <Tag color="success">{correctAnswer}</Tag>
+              </div>
+            )}
+          </Space>
+        )}
       </div>
     );
   };

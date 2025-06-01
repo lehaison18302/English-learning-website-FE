@@ -91,7 +91,7 @@
   .login-forgot a:hover {
     text-decoration: underline;
   }
-  
+    
   .login-divider {
     margin: 24px 0;
     border: none;
@@ -116,4 +116,3 @@
   .register-button:hover {
     background-color: #36a420;
   }
-  

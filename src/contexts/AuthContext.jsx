@@ -1,83 +1,148 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import app from '../firebase';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { auth } from '../firebase'; 
+import {
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword,   
+    updateProfile,                
+    signOut,                      
+    onAuthStateChanged            
+} from 'firebase/auth';
+
+import apiEndpoints from '../apis/endPoint';
+import axios from 'axios';
+import { Spin, message as antMessage, Typography } from 'antd'; // Thêm Typography
 
 const AuthContext = createContext();
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const db = getFirestore(app);
+  const [currentUserFirebase, setCurrentUserFirebase] = useState(null);
+  const [currentUserDb, setCurrentUserDb] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
+  const syncAndSetUserDb = useCallback(async (firebaseUser, registrationData = null) => {
+    if (!firebaseUser) {
+      setCurrentUserDb(null);
+      return null;
+    }
+
+    try {
+      const idToken = await firebaseUser.getIdToken(true);
+      const payload = registrationData?.name ? { name: registrationData.name } : {};
+
+      const response = await axios.post(apiEndpoints.syncProfile, payload, {
+        headers: { Authorization: `Bearer ${idToken}` }
+      });
+
+      if (response.data?.success) {
+        setCurrentUserDb(response.data.user);
+        return response.data.user;
+      }
+      
+      throw new Error(response.data?.message || "Failed to sync user profile");
+    } catch (error) {
+      console.error("AuthContext sync error:", error);
+      if (auth) {
+        await signOut(auth);
+      }
+      setCurrentUserDb(null);
+      throw error;
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUserFirebase(user);
       try {
-        console.log('Auth state changed:', user ? 'User logged in' : 'No user');
-        
         if (user) {
-          // Lấy thông tin user từ Firestore
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            console.log('User data from Firestore:', userData);
-            setIsAdmin(userData.isAdmin === 1);
-            setCurrentUser({
-              ...user,
-              ...userData
-            });
-          } else {
-            console.log('No user document found in Firestore');
-            // Nếu không tìm thấy user trong Firestore, đăng xuất
-            await auth.signOut();
-            setCurrentUser(null);
-            setIsAdmin(false);
-          }
+          await syncAndSetUserDb(user);
         } else {
-          console.log('No authenticated user');
-          setCurrentUser(null);
-          setIsAdmin(false);
+          setCurrentUserDb(null);
         }
       } catch (error) {
-        console.error('Error in auth state change:', error);
-        setCurrentUser(null);
-        setIsAdmin(false);
+        console.error("Auth state change error:", error);
       } finally {
-        setLoading(false);
+        setLoadingAuth(false);
       }
     });
 
-    return () => unsubscribe();
-  }, []);
+    return unsubscribe;
+  }, [syncAndSetUserDb]);
+
+  async function signup(email, password, name) {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, { displayName: name }); 
+        return await syncAndSetUserDb(userCredential.user, { name: name });
+      }
+      throw new Error("Không thể tạo tài khoản trên Firebase.");
+    } catch (error) {
+      console.error("AuthContext signup error:", error);
+      throw error; 
+    }
+  }
+
+  async function login(email, password) {
+    try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // onAuthStateChanged sẽ tự động gọi syncAndSetUserDb
+        return userCredential.user; // Trả về firebase user để LoginPage biết thành công
+    } catch (error) {
+        console.error("AuthContext login error:", error);
+        throw error; 
+    }
+  }
+
+  async function logout() {
+    try {
+        await signOut(auth);
+        console.log("AuthContext: User signed out from Firebase.");
+        // onAuthStateChanged sẽ tự động clear currentUserFirebase và currentUserDb
+    } catch (error) {
+        console.error("AuthContext logout error:", error);
+    }
+  }
+
+  async function refreshUserDb() {
+    if (currentUserFirebase) {
+        console.log("AuthContext: Manually refreshing userDb...");
+        setLoadingAuth(true);
+        const dbUser = await syncAndSetUserDb(currentUserFirebase);
+        setLoadingAuth(false);
+        return dbUser;
+    }
+    return null;
+  }
 
   const value = {
-    currentUser,
-    setCurrentUser, // Thêm hàm này để có thể gọi từ Sidebar
-    isAdmin,
-    loading,
-    isAuthenticated: !!currentUser
+    currentUser: currentUserFirebase,
+    currentUserDb,
+    isAdmin: currentUserDb?.role === 'admin',
+    loadingAuth,
+    isAuthenticated: !!currentUserFirebase && !!currentUserDb,
+    signup,
+    login,
+    logout,
+    refreshUserDb,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh'
-        }}>
-          <span>Đang tải...</span>
+      {loadingAuth ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <Spin size="large" tip="Đang tải..." />
         </div>
       ) : (
         children
       )}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

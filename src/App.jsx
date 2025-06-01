@@ -3,11 +3,12 @@ import "./styles.css";
 import Home from "./pages/Home";
 import PronouncePage from "./pages/PronouncePage";
 import Task from "./pages/Task";
+import RegisterPage from './pages/Register';
 import LoginPage from "./pages/Login";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import Rankings from "./pages/Rankings";
-import Shop from "./pages/Shop";
+import Vocabulary from "./pages/Vocabulary";
 import More from "./pages/More";
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -20,6 +21,8 @@ function App() {
       <div className="App">
         <Routes>
           <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route 
             path="/home" 
             element={
@@ -53,10 +56,10 @@ function App() {
             } 
           />
           <Route 
-            path="/shop" 
+            path="/vocabulary" 
             element={
               <ProtectedRoute>
-                <Shop />
+                <Vocabulary />
               </ProtectedRoute>
             }
           />
