@@ -1,59 +1,65 @@
 import React, { useState } from "react";
-import AudioButton from "./audio";
+import "./pronounce.css";
 
 const Pronounce = ({ data }) => {
     const [selectedItem, setSelectedItem] = useState(null);
 
     const handleCardClick = (item) => {
         setSelectedItem(item);
+        // Play IPA audio first
+        if (item.IPA_AudioUrl) {
+            const ipaAudio = new Audio(item.IPA_AudioUrl);
+            ipaAudio.play();
+            // Play example word audio after IPA audio finishes
+            ipaAudio.onended = () => {
+                if (item.exampleWord?.audioUrl) {
+                    new Audio(item.exampleWord.audioUrl).play();
+                }
+            };
+        }
     };
 
-    return (
-        <div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
-                {data.map((item, index) => (
-                    <div
-                        key={index}
-                        onClick={() => handleCardClick(item)}
-                        style={{
-                            border: "1px solid #ccc",
-                            borderRadius: "8px",
-                            padding: "16px",
-                            cursor: "pointer",
-                            width: "150px",
-                            textAlign: "center",
-                        }}
-                    >
-                        <h3>{item.symbol}</h3>
-                        <p>{item.type}</p>
+    const renderCards = () => {
+        const rows = [];
+        for (let i = 0; i < data.length; i += 3) {
+            rows.push(data.slice(i, i + 3));
+        }
+
+        return (
+            <div className="pronounce-grid">
+                {rows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="pronounce-row">
+                        {row.map((item, idx) => (
+                            <div
+                                key={idx}
+                                className={`pronounce-card ${selectedItem?._id === item._id ? 'selected' : ''}`}
+                                onClick={() => handleCardClick(item)}
+                            >
+                                <div className="pronounce-symbol">{item.symbol}</div>
+                                <div className="pronounce-word">{item.exampleWord?.word}</div>
+                            </div>
+                        ))}
                     </div>
                 ))}
             </div>
+        );
+    };
 
+    return (
+        <div className="pronounce-component">
+            {renderCards()}
             {selectedItem && (
-                <div
-                    style={{
-                        marginTop: "20px",
-                        padding: "16px",
-                        border: "1px solid #ccc",
-                        borderRadius: "8px",
-                    }}
-                >
-                    <h2>Details</h2>
+                <div className="pronounce-details">
+                    <h2>Chi tiết phát âm</h2>
                     <p>
-                        <strong>Symbol:</strong> {selectedItem.symbol}
+                        <strong>Ký hiệu:</strong> {selectedItem.symbol}
                     </p>
                     <p>
-                        <strong>Type:</strong> {selectedItem.type}
+                        <strong>Loại:</strong> {selectedItem.type}
                     </p>
                     <p>
-                        <strong>Example Word:</strong> {selectedItem.exampleWord.word}
+                        <strong>Từ ví dụ:</strong> {selectedItem.exampleWord?.word}
                     </p>
-                    <AudioButton audioUrl={selectedItem.exampleWord.audioUrl} />
-                    <p>
-                        <strong>IPA Audio:</strong>
-                    </p>
-                    <AudioButton audioUrl={selectedItem.IPA_AudioUrl} />
                 </div>
             )}
         </div>

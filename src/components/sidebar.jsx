@@ -11,9 +11,12 @@ import {
   EllipsisOutlined,
 } from '@ant-design/icons';
 import logo from '../assets/image/logoweb.png';
+import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 
 const menuItems = [
-  { to: '/',           label: 'Học',           icon: <HomeFilled /> },
+  { to: '/home',       label: 'Học',       icon: <HomeFilled /> },
   { to: '/pronounce',  label: 'Phát âm',       icon: <AudioOutlined /> },
   { to: '/leaderboard',label: 'Bảng xếp hạng', icon: <TrophyOutlined /> },
   { to: '/tasks',      label: 'Nhiệm vụ',      icon: <CheckCircleOutlined /> },
@@ -25,6 +28,23 @@ const menuItems = [
 export default function Sidebar() {
   const { pathname } = useLocation();
   const [hovered, setHovered] = useState(null);
+  const { setCurrentUser } = useAuth?.() || {};
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      // Xóa thông tin người dùng khỏi phiên (localStorage/sessionStorage nếu có)
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
+      localStorage.removeItem('completedLessons'); // Xóa completedLessons khi logout
+      if (setCurrentUser) setCurrentUser(null);
+      navigate('/');
+    } catch (error) {
+      // Có thể hiển thị thông báo lỗi nếu cần
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <aside style={styles.sidebar}>
@@ -67,6 +87,27 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      <div style={{ flexGrow: 1 }} />
+
+      <button
+        onClick={handleLogout}
+        className="sidebar-logout-btn"
+        style={{
+          width: '100%',
+          padding: '12px',
+          fontSize: '16px',
+          fontWeight: 550,
+          background: '#91de62',
+          color: '#595959',
+          border: 'none',
+          borderRadius: '4px',
+          marginBottom: '16px',
+          cursor: 'pointer',
+        }}
+      >
+        Đăng xuất
+      </button>
     </aside>
   );
 }
