@@ -2,7 +2,7 @@ import axios from "axios";
 import queryString from "query-string";
 import { getAuth } from "firebase/auth";
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = "https://english-learning-website-be-nhom32.onrender.com";
 
 export const axiosClient = axios.create({
   baseURL: BASE_URL,

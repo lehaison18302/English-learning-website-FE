@@ -1,6 +1,3 @@
-// src/firebase.js
-
-// Import các function cần thiết
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
